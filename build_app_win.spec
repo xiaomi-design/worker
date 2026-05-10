@@ -7,16 +7,40 @@
 生成结果：dist\\微信记账机器人\\微信记账机器人.exe
 """
 
+import sys
 from PyInstaller.utils.hooks import collect_all
 
 block_cipher = None
 
+# 显式确认 pywebview 已装在打包环境，否则 collect_all 会静默返回空导致运行时找不到模块
+try:
+    import webview as _webview_check
+    print(f"[spec] pywebview located: {_webview_check.__file__}")
+except Exception as e:
+    raise SystemExit(
+        f"[spec] FATAL: pywebview 未安装在打包 Python ({sys.executable}) 中: {e}\n"
+        f"请先运行: pip install pywebview"
+    )
+
 # 完整收集 pywebview（动态加载 winforms/edge 后端，必须用 collect_all）
 _wv_datas, _wv_bins, _wv_hidden = collect_all('webview')
-# 完整收集 wxauto（依赖 uiautomation/comtypes 类型库）
-_wa_datas, _wa_bins, _wa_hidden = collect_all('wxauto')
-_ua_datas, _ua_bins, _ua_hidden = collect_all('uiautomation')
-_ct_datas, _ct_bins, _ct_hidden = collect_all('comtypes')
+print(f"[spec] webview collected: {len(_wv_datas)} data, {len(_wv_bins)} bin, {len(_wv_hidden)} hidden")
+if not _wv_hidden:
+    raise SystemExit("[spec] FATAL: collect_all('webview') 返回空，pywebview 安装可能损坏")
+
+# 完整收集 wxauto（依赖 uiautomation/comtypes 类型库）— 缺失不致命，仅警告
+def _safe_collect(pkg):
+    try:
+        d, b, h = collect_all(pkg)
+        print(f"[spec] {pkg} collected: {len(d)} data, {len(b)} bin, {len(h)} hidden")
+        return d, b, h
+    except Exception as e:
+        print(f"[spec] WARN: collect_all({pkg!r}) failed: {e}")
+        return [], [], []
+
+_wa_datas, _wa_bins, _wa_hidden = _safe_collect('wxauto')
+_ua_datas, _ua_bins, _ua_hidden = _safe_collect('uiautomation')
+_ct_datas, _ct_bins, _ct_hidden = _safe_collect('comtypes')
 
 a = Analysis(
     ['app.py'],
