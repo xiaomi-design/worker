@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>下注机器人</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:#fff;color:#333;font-size:13px;}
+/* 顶部栏 */
+.topbar{display:flex;gap:6px;padding:6px 8px;background:#f5f5f5;border-bottom:1px solid #ccc;align-items:center;flex-wrap:wrap;}
+.topbar button{padding:4px 10px;border:1px solid #999;border-radius:3px;background:#fff;font-size:12px;cursor:pointer;}
+.topbar button.active{background:#e94560;color:#fff;border-color:#e94560;}
+.topbar button.add-btn{border-style:dashed;color:#999;}
+.topbar .sep{color:#ccc;margin:0 2px;}
+/* 骰子栏 */
+.dice-bar{display:flex;padding:4px 8px;background:#f0f0f0;border-bottom:1px solid #ccc;font-size:13px;font-weight:bold;gap:0;}
+.dice-bar .dice-item{flex:1;text-align:center;padding:3px 0;}
+.dice-bar .dice-item span.num{margin-right:2px;}
+.dice-bar .win{color:#1565d8;} .dice-bar .lose{color:#e00;}
+.dice-bar .opened{color:#1565d8;font-weight:bold;}
+.pos{color:#1565d8;} .neg{color:#e00;}
+/* 主表格 */
+.main-table{width:100%;border-collapse:collapse;}
+.main-table th,.main-table td{border:1px solid #ccc;padding:3px 6px;text-align:center;vertical-align:middle;}
+.main-table th{background:#f5f5f5;font-weight:bold;font-size:12px;color:#333;}
+.main-table td{font-size:13px;}
+.summary-row td{background:#ffe0e0;font-weight:bold;color:#c00;}
+.bet-edit:hover{background:#fffbe6;}
+.bet-invalid{background:#ffd6d6 !important;color:#c00;font-weight:bold;}
+.bet-invalid:hover{background:#ffbcbc !important;}
+/* 截图（打印）只保留 骰子栏 + 主表格 */
+@media print{
+  body *{visibility:hidden;}
+  #shotArea,#shotArea *{visibility:visible;}
+  #shotArea{position:absolute;left:0;top:0;width:100%;}
+  .topbar,.op-bar,.input-area,.rank-section,.toast,.modal-overlay{display:none !important;}
+  .bet-edit{cursor:default !important;}
+  .bet-edit span{display:none !important;}
+}
+.no-border-top{border-top:none !important;}
+.no-border-bottom{border-bottom:none !important;}
+td.left{text-align:left;}
+/* 操作菜单 */
+.ops-item{padding:6px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid #eee;}
+.ops-item:hover{background:#f0f0f0;}
+.ops-item:last-child{border-bottom:none;}
+/* 底部操作区 */
+.op-bar{padding:6px 8px;background:#f9f9f9;border-top:1px solid #ccc;display:flex;gap:6px;flex-wrap:wrap;}
+.op-bar button{padding:5px 12px;border:1px solid #999;border-radius:3px;background:#fff;font-size:12px;cursor:pointer;}
+.op-bar button:hover{background:#eee;}
+.op-bar .btn-danger{color:#e00;border-color:#e00;}
+.op-bar .btn-primary{color:#fff;background:#1890ff;border-color:#1890ff;}
+/* 输入区 */
+.input-area{padding:8px;border-top:1px solid #ccc;background:#fafafa;}
+.input-area textarea{width:100%;min-height:60px;padding:6px;border:1px solid #ccc;font-size:12px;font-family:inherit;resize:vertical;}
+.input-area .hint{font-size:11px;color:#999;margin-top:2px;}
+.input-row{display:flex;gap:4px;margin-top:6px;}
+.input-row input{flex:1;padding:4px 6px;border:1px solid #ccc;font-size:12px;}
+.input-row button{padding:4px 10px;border:1px solid #1890ff;background:#1890ff;color:#fff;font-size:12px;cursor:pointer;border-radius:2px;}
+.parsed-list{margin-top:6px;}
+.parsed-item{display:flex;align-items:center;gap:6px;padding:2px 4px;background:#fff;border:1px solid #eee;margin-bottom:2px;font-size:12px;}
+.parsed-item .rm{margin-left:auto;color:#e00;cursor:pointer;border:none;background:none;font-size:13px;}
+.confirm-bar{display:flex;gap:6px;margin-top:6px;}
+.confirm-bar button{padding:5px 14px;border:none;border-radius:3px;font-size:12px;cursor:pointer;}
+.confirm-bar .btn-ok{background:#52c41a;color:#fff;} .confirm-bar .btn-cl{background:#eee;color:#333;}
+/* toast */
+.toast{position:fixed;top:10px;left:50%;transform:translateX(-50%);padding:8px 18px;border-radius:4px;color:#fff;font-size:13px;z-index:999;display:none;}
+.toast.ok{background:#52c41a;}.toast.err{background:#e00;}
+/* modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:100;justify-content:center;align-items:center;}
+.modal-overlay.show{display:flex;}
+.modal{background:#fff;border-radius:6px;padding:16px;width:280px;border:1px solid #ccc;}
+.modal h3{margin-bottom:10px;font-size:14px;}
+.modal input{width:100%;padding:6px;border:1px solid #ccc;margin-bottom:10px;font-size:14px;}
+.modal .btns{display:flex;gap:6px;}
+.modal .btns button{flex:1;padding:6px;border:1px solid #ccc;border-radius:3px;font-size:13px;cursor:pointer;}
+.modal .btns .ok{background:#1890ff;color:#fff;border-color:#1890ff;}
+/* 底部排行 */
+.rank-section{padding:8px;border-top:1px solid #ccc;}
+.rank-section h4{font-size:13px;margin-bottom:4px;}
+.rank-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.rank-table{width:100%;border-collapse:collapse;font-size:12px;}
+.rank-table th,.rank-table td{border:1px solid #ddd;padding:2px 6px;text-align:center;}
+.rank-table th{background:#f5f5f5;}
+</style>
+</head>
+<body>
+
+<!-- 顶部操作栏 -->
+<div class="topbar" style="border-bottom:1px solid #999;background:#e8e8e8;">
+  <button onclick="pasteFromClipboard()">📋 粘贴</button>
+  <button onclick="takeScreenshot()">📸 截图</button>
+  <button onclick="api('end')">🏁 结束本筒</button>
+  <button onclick="clearRound()">🧹 清除本筒</button>
+  <button onclick="revertRound()">⏪ 返回上筒</button>
+  <button onclick="viewLastRound()">👁️ 查看上筒</button>
+</div>
+
+<!-- 群选择 -->
+<div class="topbar">
+  <span style="font-weight:bold;font-size:13px;">群:</span>
+  <span id="groupBar"><button class="add-btn" onclick="showModal('addGroupModal')">+ 添加</button></span>
+</div>
+
+<!-- 截图区：骰子栏 + 主表格 -->
+<div id="shotArea">
+  <!-- 骰子模拟栏 -->
+  <div class="dice-bar" id="diceBar" style="display:none;"></div>
+
+  <!-- 主表格 -->
+  <table class="main-table" id="mainTable" style="display:none;">
+    <thead>
+      <tr><th style="width:30px;">序号</th><th style="width:60px;">总账</th><th style="width:100px;">名称</th><th>投入</th><th style="width:60px;">输赢</th><th style="width:60px;">本筒</th></tr>
+    </thead>
+    <tbody id="mainBody"></tbody>
+  </table>
+</div>
+
+<!-- 操作栏 -->
+<div class="op-bar" id="opBar" style="display:none;">
+  <button onclick="api('seal')">🔒封盘</button>
+  <button onclick="api('open')">🎲随机开奖</button>
+  <button onclick="showModal('diceModal')">🎯指定开奖</button>
+  <button onclick="api('end')">🏁结束本局</button>
+  <button onclick="api('export')">📥导出</button>
+  <button onclick="confirmNewGame()">🆕新一局</button>
+  <button class="btn-danger" onclick="removeGroup()">🗑️解散</button>
+</div>
+
+<!-- 输入区 -->
+<div class="input-area" id="inputArea" style="display:none;">
+  <textarea id="pasteArea" placeholder="粘贴微信消息自动识别&#10;格式: 张三:&#10;3/1000"></textarea>
+  <div class="hint">💡 微信复制消息粘贴到上面自动识别</div>
+  <div class="parsed-list" id="parsedList"></div>
+  <div class="confirm-bar" id="confirmBar" style="display:none;">
+    <button class="btn-cl" onclick="clearParsed()">清空</button>
+    <button class="btn-ok" onclick="confirmBets()">✅确认下注</button>
+  </div>
+  <div class="input-row">
+    <input id="betUser" placeholder="玩家名">
+    <input id="betText" placeholder="如 3/1000">
+    <button onclick="placeBet()">下注</button>
+  </div>
+</div>
+
+<!-- 排行区 -->
+<div class="rank-section" id="rankSection" style="display:none;">
+  <div id="rankContent"></div>
+</div>
+
+<!-- Toast --><div class="toast" id="toast"></div>
+<!-- 添加群 -->
+<div class="modal-overlay" id="addGroupModal"><div class="modal"><h3>添加群</h3><input id="newGroupName" placeholder="群名"><div class="btns"><button onclick="hideModal('addGroupModal')">取消</button><button class="ok" onclick="addGroup()">确认</button></div></div></div>
+<!-- 指定开奖 -->
+<div class="modal-overlay" id="diceModal"><div class="modal"><h3>指定开奖 (1-6)</h3><input id="diceNumber" type="number" min="1" max="6" placeholder="1-6"><div class="btns"><button onclick="hideModal('diceModal')">取消</button><button class="ok" onclick="openDiceManual()">开奖</button></div></div></div>
+<!-- 修改下注 -->
+<div class="modal-overlay" id="editBetModal"><div class="modal"><h3>修改下注</h3><div id="editBetInfo" style="font-size:12px;color:#999;margin-bottom:6px;"></div><input id="editBetText" placeholder="新下注内容"><div class="btns"><button onclick="hideModal('editBetModal')">取消</button><button class="ok" onclick="submitEditBet()">确认</button></div></div></div>
+
+<script>
+let currentGroup=null, editingBetIndex=-1, parsedBets=[];
+const initGroups={{ groups|tojson }};
+
+window.onload=()=>{ initGroups.forEach(g=>renderGroupBtn(g)); };
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('pasteArea').addEventListener('input',function(){
+    const t=this.value.trim();
+    if(!t){clearParsed();return;}
+    post('/api/bet/parse',{text:t},d=>{parsedBets=d.parsed;renderParsed();});
+  });
+});
+
+// 金额显示统一缩小10000倍（1 代表 10000），去除末尾多余的 0
+const SCALE=10000;
+function _trim(s){return s.indexOf('.')>=0?s.replace(/0+$/,'').replace(/\.$/,''):s;}
+function _num(v){const s=_trim((v/SCALE).toFixed(4));return s===''||s==='-0'?'0':s;}
+function fmt(v){const x=v/SCALE;const s=_num(v);return s==='0'?'0':((x>0?'+':'')+s);}
+function fmtAmt(v){return _num(v);}
+// 把下注原文中的金额（每段最后一个/后的数字）按 SCALE 缩小
+function fmtBet(raw){
+  if(!raw)return '';
+  return raw.split('///').map(seg=>{
+    const idx=seg.lastIndexOf('/');
+    if(idx<0)return seg;
+    const amt=parseFloat(seg.substring(idx+1));
+    if(isNaN(amt))return seg;
+    return seg.substring(0,idx)+'/'+_num(amt);
+  }).join('///');
+}
+// 检测下注金额是否合规（必须是 100 的整数倍）
+function isBetInvalid(amount){return !amount||(amount%100)!==0;}
+
+function toast(msg,ok=true){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(ok?'ok':'err');t.style.display='block';setTimeout(()=>t.style.display='none',2500);}
+function showModal(id){document.getElementById(id).classList.add('show');}
+function hideModal(id){document.getElementById(id).classList.remove('show');}
+function post(url,data,cb){fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(r=>r.json()).then(d=>{if(d.ok){toast(d.msg);cb&&cb(d);}else{toast(d.msg,false);}});}
+
+function renderGroupBtn(name){
+  const bar=document.getElementById('groupBar');
+  const btn=document.createElement('button');
+  btn.textContent=name;btn.dataset.group=name;
+  btn.onclick=()=>selectGroup(name);
+  bar.insertBefore(btn,bar.lastChild);
+}
+function selectGroup(name){
+  currentGroup=name;
+  document.querySelectorAll('#groupBar button').forEach(b=>b.classList.toggle('active',b.dataset.group===name));
+  ['mainTable','inputArea','opBar'].forEach(id=>document.getElementById(id).style.display='');
+  refresh();
+}
+function addGroup(){
+  const name=document.getElementById('newGroupName').value.trim();
+  if(!name)return;
+  post('/api/group/add',{name},d=>{renderGroupBtn(name);selectGroup(name);});
+  hideModal('addGroupModal');
+}
+function removeGroup(){
+  if(!currentGroup)return;
+  if(!confirm('确定解散 ['+currentGroup+']？'))return;
+  post('/api/group/remove',{name:currentGroup},d=>{
+    document.querySelectorAll('#groupBar button').forEach(b=>{if(b.dataset.group===currentGroup)b.remove();});
+    currentGroup=null;
+    ['mainTable','inputArea','opBar','rankSection'].forEach(id=>document.getElementById(id).style.display='none');
+    document.getElementById('diceBar').style.display='none';
+  });
+}
+function confirmNewGame(){if(!currentGroup)return;if(!confirm('确定开始新一局？'))return;api('new');}
+function api(action){
+  if(!currentGroup)return toast('请先选择群',false);
+  const urls={new:'/api/game/new',seal:'/api/game/seal',open:'/api/game/open',end:'/api/game/end',export:'/api/report/export'};
+  post(urls[action],{group:currentGroup},d=>{if(action==='export'&&d.filepath)window.open('/api/report/download?filepath='+encodeURIComponent(d.filepath));refresh();});
+}
+function openDiceManual(){const n=parseInt(document.getElementById('diceNumber').value);if(n<1||n>6)return toast('请输入1-6',false);hideModal('diceModal');post('/api/game/open',{group:currentGroup,number:n},()=>refresh());}
+
+// 粘贴解析
+function renderParsed(){
+  const list=document.getElementById('parsedList'),bar=document.getElementById('confirmBar');
+  if(!parsedBets.length){list.innerHTML='';bar.style.display='none';return;}
+  bar.style.display='flex';
+  list.innerHTML=parsedBets.map((b,i)=>`<div class="parsed-item"><span>👤${b.user}</span><span>${b.bet_text}</span><button class="rm" onclick="removeParsed(${i})">✕</button></div>`).join('');
+}
+function removeParsed(i){parsedBets.splice(i,1);renderParsed();}
+function clearParsed(){parsedBets=[];document.getElementById('pasteArea').value='';renderParsed();}
+function confirmBets(){if(!parsedBets.length||!currentGroup)return;post('/api/bet/batch',{group:currentGroup,bets:parsedBets},()=>{clearParsed();refresh();});}
+function placeBet(){
+  const user=document.getElementById('betUser').value.trim(),bet_text=document.getElementById('betText').value.trim();
+  if(!user||!bet_text)return toast('请填写完整',false);
+  post('/api/bet',{group:currentGroup,user,bet_text},()=>{document.getElementById('betText').value='';refresh();});
+}
+function editBet(index,user,rawText){editingBetIndex=index;document.getElementById('editBetInfo').textContent='玩家: '+user;document.getElementById('editBetText').value=rawText;showModal('editBetModal');}
+function submitEditBet(){const t=document.getElementById('editBetText').value.trim();if(!t)return toast('请输入',false);post('/api/bet/update',{group:currentGroup,index:editingBetIndex,bet_text:t},()=>{hideModal('editBetModal');refresh();});}
+function deleteBet(index){if(!confirm('删除此注？'))return;post('/api/bet/remove',{group:currentGroup,index},()=>refresh());}
+function addMember(){const name=document.getElementById('newMemberName')?.value?.trim();if(!name||!currentGroup)return;post('/api/member/add',{group:currentGroup,name},()=>refresh());}
+function removeMember(name){if(!confirm('移除 '+name+'？'))return;post('/api/member/remove',{group:currentGroup,name},()=>refresh());}
+
+// ===== 顶部操作 =====
+function toggleOpsMenu(){const m=document.getElementById('opsMenu');m.style.display=m.style.display==='block'?'none':'block';}
+document.addEventListener('click',e=>{if(!e.target.closest('#opsMenu')&&!e.target.matches('button[onclick*="toggleOpsMenu"]')){const m=document.getElementById('opsMenu');if(m)m.style.display='none';}});
+
+function pasteFromClipboard(){
+  if(!currentGroup)return toast('请先选择群',false);
+  fetch('/api/clipboard').then(r=>r.json()).then(d=>{
+    if(!d.ok)return toast(d.msg,false);
+    if(!d.text)return toast('剪贴板为空',false);
+    const ta=document.getElementById('pasteArea');
+    ta.value=d.text;
+    ta.dispatchEvent(new Event('input'));
+    ta.focus();
+    toast('已粘贴');
+  });
+}
+
+function takeScreenshot(){window.print();}
+
+function clearRound(){
+  if(!currentGroup)return;
+  if(!confirm('确定清除本筒所有下注？'))return;
+  post('/api/round/clear',{group:currentGroup},()=>refresh());
+}
+function revertRound(){
+  if(!currentGroup)return;
+  if(!confirm('确定返回上一筒？将撤销最近一次开奖与结算'))return;
+  post('/api/round/revert',{group:currentGroup},()=>refresh());
+}
+function viewLastRound(){
+  if(!currentGroup)return toast('请先选择群',false);
+  fetch('/api/round/last?group='+encodeURIComponent(currentGroup)).then(r=>r.json()).then(d=>{
+    if(!d.ok)return toast(d.msg,false);
+    const r=d.data;
+    let msg='第 '+r.round+' 筒  开奖: '+r.dice+'\n\n';
+    r.results.forEach(x=>{msg+=x.user+' '+fmtBet(x.raw_text)+' → '+fmt(x.profit)+'\n';});
+    msg+='\n本筒合计: '+fmt(r.total_profit);
+    alert(msg);
+  });
+}
+
+// ===== 刷新+渲染 =====
+function refresh(){
+  if(!currentGroup)return;
+  fetch('/api/status?group='+encodeURIComponent(currentGroup)).then(r=>r.json()).then(d=>{
+    if(!d.ok)return;
+    const bets=d.pending_bets||[], members=d.members||[], summary=d.summary, results=d.all_results||[], rankings=d.rankings;
+    // 1-6 骰子栏一直显示
+    if(bets.length){loadSim(summary);} else {renderDiceBarPlain(summary);}
+    renderMainTable(members,bets,summary,results);
+    renderRankings(rankings);
+  });
+}
+
+// 没有未结算下注时：仅显示 1-6（最近一筒高亮）
+function renderDiceBarPlain(summary){
+  const bar=document.getElementById('diceBar');
+  bar.style.display='flex';
+  const opened=(summary&&summary.dice_results)||[];
+  const latest=opened.length?opened[opened.length-1]:null;
+  bar.innerHTML=[1,2,3,4,5,6].map(n=>{
+    const numCls=(n===latest)?'num opened':'num';
+    return `<div class="dice-item"><span class="${numCls}">${n}</span></div>`;
+  }).join('');
+}
+
+// 有未结算下注时：1-6 + 每个号码的庄家盈亏（最近一筒号码也高亮）
+function loadSim(summary){
+  fetch('/api/simulate?group='+encodeURIComponent(currentGroup)).then(r=>r.json()).then(d=>{
+    if(!d.ok||!d.results.length){renderDiceBarPlain(summary);return;}
+    const opened=(summary&&summary.dice_results)||[];
+    const latest=opened.length?opened[opened.length-1]:null;
+    const bar=document.getElementById('diceBar');bar.style.display='flex';
+    bar.innerHTML=d.results.map(r=>{
+      const cls=r.banker_profit>=0?'win':'lose';
+      const numCls=(r.dice===latest)?'num opened':'num';
+      return `<div class="dice-item"><span class="${numCls}">${r.dice}</span><span class="${cls}">${fmt(r.banker_profit)}</span></div>`;
+    }).join('');
+  });
+}
+
+function renderMainTable(members,bets,summary,results){
+  const body=document.getElementById('mainBody');
+  // 按用户分组当前下注
+  const userBets={};
+  bets.forEach((b,i)=>{if(!userBets[b.user])userBets[b.user]=[];userBets[b.user].push({...b,_i:i});});
+  // 按用户分组已结算
+  const userResults={};
+  results.forEach(r=>{if(!userResults[r.user])userResults[r.user]=[];userResults[r.user].push(r);});
+  // 合并所有人名
+  const allNames=[];const nameSet=new Set();
+  (members||[]).forEach(m=>{allNames.push(m.name);nameSet.add(m.name);});
+  Object.keys(userBets).forEach(u=>{if(!nameSet.has(u)){allNames.push(u);nameSet.add(u);}});
+  // 有下注或已结算的用户排在前面
+  const active=allNames.filter(n=>(userBets[n]&&userBets[n].length)||(userResults[n]&&userResults[n].length));
+  const idle=allNames.filter(n=>!((userBets[n]&&userBets[n].length)||(userResults[n]&&userResults[n].length)));
+  const sortedNames=[...active,...idle];
+
+  let html='';
+  // 汇总行
+  if(summary&&summary.game_id){
+    const s=summary;
+    const statusTxt={betting:'下注中',sealed:'已封盘',ended:'已结束'}[s.status]||s.status;
+    const dice=s.dice_results.length?s.dice_results.join(','):'-';
+    const totalPL=s.total_win+s.total_lose;
+    html+=`<tr class="summary-row">
+      <td></td>
+      <td>${fmt(-s.total_profit)}</td>
+      <td class="left">#${s.game_id} ${statusTxt}</td>
+      <td class="left">总注:${fmtAmt(s.total_bet_amount)} 注:${bets.length} 开:${dice}</td>
+      <td>${fmt(s.total_profit)}</td>
+      <td>${fmt(-s.total_profit)}</td>
+    </tr>`;
+  }
+  // 成员行
+  const memberMap={};(members||[]).forEach(m=>{memberMap[m.name]=m;});
+  let idx=0;
+  sortedNames.forEach(name=>{
+    idx++;
+    const m=memberMap[name];
+    const myBets=userBets[name]||[];
+    const myResults=userResults[name]||[];
+    const allRows=[...myBets.map(b=>({type:'bet',data:b})),...myResults.map(r=>({type:'result',data:r}))];
+    const rowCount=Math.max(allRows.length,1);
+    // 总账=本局累计盈亏（开新局自动归零）
+    const totalProfit=myResults.reduce((s,r)=>s+r.profit,0);
+    const profitCls=totalProfit<0?'neg':'pos';
+    // 本筒=最近一筒该用户的盈亏
+    const latestRound=(summary&&summary.round_count)||0;
+    const roundProfit=myResults.filter(r=>r.round===latestRound).reduce((s,r)=>s+r.profit,0);
+    const rpCls=roundProfit<0?'neg':'pos';
+
+    for(let i=0;i<rowCount;i++){
+      html+='<tr>';
+      if(i===0){
+        html+=`<td rowspan="${rowCount}">${idx}</td>`;
+        html+=`<td rowspan="${rowCount}" class="${profitCls}">${fmt(totalProfit)}</td>`;
+        html+=`<td rowspan="${rowCount}" class="left">${name}</td>`;
+      }
+      const row=allRows[i];
+      if(row){
+        if(row.type==='bet'){
+          const b=row.data;
+          const safe=b.raw_text.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+          const invalid=isBetInvalid(b.amount);
+          const cls='left bet-edit'+(invalid?' bet-invalid':'');
+          const tip=invalid?'金额不是 100 的整数倍':'点击修改';
+          html+=`<td class="${cls}" style="cursor:pointer;" onclick="editBet(${b._i},'${name}','${safe}')" title="${tip}">${fmtBet(b.raw_text)}${invalid?' ⚠️':''} <span style="font-size:10px;color:#e00;cursor:pointer;margin-left:4px;" onclick="event.stopPropagation();deleteBet(${b._i})">✕</span></td>`;
+          html+=`<td></td>`;
+        } else {
+          const r=row.data;
+          const pc=r.profit<0?'neg':'pos';
+          html+=`<td class="left">${fmtBet(r.raw_text)}</td>`;
+          html+=`<td class="${pc}">${fmt(r.profit)}</td>`;
+        }
+      } else {
+        html+='<td></td><td></td>';
+      }
+      if(i===0){
+        html+=`<td rowspan="${rowCount}" class="${rpCls}">${fmt(roundProfit)}</td>`;
+      }
+      html+='</tr>';
+    }
+  });
+  if(!allNames.size&&!allNames.length){
+    html='<tr><td colspan="6" style="color:#999;padding:20px;">暂无数据</td></tr>';
+  }
+  body.innerHTML=html;
+}
+
+function renderRankings(rankings){
+  const sec=document.getElementById('rankSection');
+  if(!rankings||(!rankings.winners.length&&!rankings.losers.length)){sec.style.display='none';return;}
+  sec.style.display='';
+  let h='<div class="rank-grid"><div><h4 style="color:#080;">🟢 赢家</h4><table class="rank-table"><tr><th>排名</th><th>名称</th><th>盈利</th></tr>';
+  rankings.winners.forEach((w,i)=>{h+=`<tr><td>${i+1}</td><td>${w.name}</td><td class="pos">${fmt(w.profit)}</td></tr>`;});
+  if(!rankings.winners.length) h+='<tr><td colspan="3" style="color:#999;">暂无</td></tr>';
+  h+='</table></div><div><h4 style="color:#e00;">🔴 输家</h4><table class="rank-table"><tr><th>排名</th><th>名称</th><th>亏损</th></tr>';
+  rankings.losers.forEach((l,i)=>{h+=`<tr><td>${i+1}</td><td>${l.name}</td><td class="neg">${fmt(l.profit)}</td></tr>`;});
+  if(!rankings.losers.length) h+='<tr><td colspan="3" style="color:#999;">暂无</td></tr>';
+  h+='</table></div></div>';
+  const bankerProfit=-rankings.total;
+  const bankerCls=bankerProfit>=0?'pos':'neg';
+  h+=`<div style="margin-top:6px;font-size:13px;text-align:center;">玩家赢总: <span class="pos">${fmt(rankings.total_win)}</span> | 玩家输总: <span class="neg">${fmt(rankings.total_lose)}</span> | 庄家: <span class="${bankerCls}">${fmt(bankerProfit)}</span></div>`;
+  document.getElementById('rankContent').innerHTML=h;
+}
+</script>
+</body>
+</html>
+

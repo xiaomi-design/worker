@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# 打包产物
+build/
+dist/
+*.spec.bak
+
+# 虚拟环境
+venv/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*~
+
+# macOS
+.DS_Store
+
+# 报表/导出文件（如果有）
+*.xlsx
+!templates/*.xlsx
+output/
+exports/
+data/
+
