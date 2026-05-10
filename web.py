@@ -11,6 +11,14 @@ from report import export_game_csv
 from wechat_auto import get_listener
 
 app = Flask(__name__)
+# 让 JSON 响应直出 UTF-8 中文，不要转成 \uXXXX 转义（Windows 某些环境会显示成字面量）
+try:
+    app.json.ensure_ascii = False  # Flask 2.2+
+except Exception:
+    pass
+app.config["JSON_AS_ASCII"] = False  # 兼容旧版本
+app.jinja_env.policies["json.dumps_kwargs"] = {"ensure_ascii": False}
+
 engine = GameEngine()
 
 
