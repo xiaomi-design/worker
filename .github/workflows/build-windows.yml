@@ -30,21 +30,48 @@ jobs:
         shell: bash
         continue-on-error: true
         run: |
-          echo "=== pip list ==="
-          pip list
-          echo "=== import webview ==="
-          python -c "import webview; print('webview OK:', webview.__file__)" || echo "webview FAIL"
-          echo "=== import flask ==="
-          python -c "import flask; print('flask OK:', flask.__version__)" || echo "flask FAIL"
-          echo "=== import wxauto ==="
-          python -c "import wxauto; print('wxauto OK:', wxauto.__file__)" || echo "wxauto FAIL（仅 Windows 才有）"
-          echo "=== pip show pywebview ==="
-          pip show pywebview || true
-          echo "=== requirements.txt ==="
-          cat requirements.txt
+          mkdir -p build-logs
+          {
+            echo "=== pip list ==="
+            pip list
+            echo "=== import webview ==="
+            python -c "import webview; print('webview OK:', webview.__file__)" 2>&1 || echo "webview FAIL"
+            echo "=== import flask ==="
+            python -c "import flask; print('flask OK:', flask.__version__)" 2>&1 || echo "flask FAIL"
+            echo "=== import wxauto ==="
+            python -c "import wxauto; print('wxauto OK:', wxauto.__file__)" 2>&1 || echo "wxauto FAIL"
+            echo "=== pip show pywebview ==="
+            pip show pywebview 2>&1 || true
+            echo "=== which python ==="
+            python -c "import sys; print(sys.executable); print(sys.version)"
+            echo "=== requirements.txt ==="
+            cat requirements.txt
+          } | tee build-logs/verify.log
 
       - name: PyInstaller 打包
-        run: pyinstaller build_app_win.spec --clean --noconfirm --log-level INFO
+        shell: bash
+        continue-on-error: true
+        run: |
+          mkdir -p build-logs
+          pyinstaller build_app_win.spec --clean --noconfirm --log-level INFO 2>&1 | tee build-logs/pyinstaller.log
+          echo "exit=${PIPESTATUS[0]}" > build-logs/pyinstaller.exit
+
+      - name: 上传构建日志（无论成败）
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-logs
+          path: build-logs/
+          retention-days: 7
+
+      - name: 检查打包是否成功
+        shell: bash
+        run: |
+          if [ ! -d "dist/微信记账机器人" ]; then
+            echo "ERROR: dist/微信记账机器人 不存在，打包失败，请下载 build-logs artifact 查看"
+            exit 1
+          fi
+          echo "OK: 打包成功"
 
       - name: 压缩成 zip
         run: |
