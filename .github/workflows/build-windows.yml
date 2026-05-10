@@ -69,14 +69,18 @@ jobs:
       - name: 检查打包是否成功
         shell: bash
         run: |
+          # 总是打印 spec 输出 + WARN/ERROR 关键行（无论成功失败）
+          echo "============ pyinstaller.log [spec]/WARN/ERROR 行 ============"
+          grep -n -E "spec\]|WARNING|ERROR|Traceback|FATAL|module named" build-logs/pyinstaller.log || true
+          echo "============ dist 内容 ============"
+          ls -la dist/ || true
+          ls dist/微信记账机器人/_internal/ 2>/dev/null | head -50 || true
+          echo "============ 检查 flask 是否打进 _internal ============"
+          ls dist/微信记账机器人/_internal/flask/ 2>/dev/null && echo "flask OK" || echo "flask 未打入 _internal!"
           if [ ! -d "dist/微信记账机器人" ]; then
             echo "::error::dist/微信记账机器人 不存在，打包失败"
-            echo "============ verify.log ============"
             cat build-logs/verify.log || true
-            echo "============ pyinstaller.log 最后 200 行 ============"
             tail -200 build-logs/pyinstaller.log || true
-            echo "============ pyinstaller.log 中所有 ERROR/Traceback/FATAL ============"
-            grep -n -E "ERROR|Traceback|FATAL|SystemExit|spec\]" build-logs/pyinstaller.log || true
             exit 1
           fi
           echo "OK: 打包成功"
