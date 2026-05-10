@@ -8,6 +8,10 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    env:
+      # Windows 默认 cp1252 编码，Python print 中文会 UnicodeEncodeError，全局强制 UTF-8
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: '1'
 
     steps:
       - name: 检出代码
@@ -36,7 +40,7 @@ jobs:
             || pip install wxauto -i https://pypi.tuna.tsinghua.edu.cn/simple \
             || pip install wxauto -i https://mirrors.aliyun.com/pypi/simple/ \
             || { echo "::error::wxauto 三种来源全部失败"; exit 1; }
-          python -c "import wxauto; print('wxauto 版本:', getattr(wxauto, 'VERSION', getattr(wxauto, '__version__', 'unknown')))"
+          PYTHONIOENCODING=utf-8 python -c "import wxauto; print('wxauto version:', getattr(wxauto, 'VERSION', getattr(wxauto, '__version__', 'unknown')))"
 
       - name: 验证关键依赖已装上
         shell: bash
