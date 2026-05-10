@@ -68,7 +68,13 @@ jobs:
         shell: bash
         run: |
           if [ ! -d "dist/微信记账机器人" ]; then
-            echo "ERROR: dist/微信记账机器人 不存在，打包失败，请下载 build-logs artifact 查看"
+            echo "::error::dist/微信记账机器人 不存在，打包失败"
+            echo "============ verify.log ============"
+            cat build-logs/verify.log || true
+            echo "============ pyinstaller.log 最后 200 行 ============"
+            tail -200 build-logs/pyinstaller.log || true
+            echo "============ pyinstaller.log 中所有 ERROR/Traceback/FATAL ============"
+            grep -n -E "ERROR|Traceback|FATAL|SystemExit|spec\]" build-logs/pyinstaller.log || true
             exit 1
           fi
           echo "OK: 打包成功"
