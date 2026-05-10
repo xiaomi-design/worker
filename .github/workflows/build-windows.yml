@@ -23,8 +23,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
-          # 兜底：单独再装一次 pywebview，确保打包环境一定有
-          pip install --upgrade --force-reinstall --no-deps pywebview
+          # 兜底：再装一次 pywebview（含全部依赖如 proxy_tools/typing_extensions/bottle 等）
+          pip install --upgrade --force-reinstall pywebview
+          # 显式补装 pywebview 在 import 阶段需要的依赖（部分版本会漏装）
+          pip install proxy_tools typing_extensions bottle
 
       - name: 验证关键依赖已装上
         shell: bash

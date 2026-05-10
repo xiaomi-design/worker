@@ -53,6 +53,7 @@ a = Analysis(
     hiddenimports=[
         'engine', 'parser', 'models', 'config', 'wechat', 'wechat_auto', 'report', 'web',
         'clr_loader', 'clr_loader.netfx', 'clr_loader.types',
+        'proxy_tools', 'bottle', 'typing_extensions',
     ] + _wv_hidden + _wa_hidden + _ua_hidden + _ct_hidden,
     hookspath=[],
     hooksconfig={},
