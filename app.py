@@ -28,27 +28,60 @@ os.environ.setdefault("PYTHONIOENCODING", "utf-8")
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import webview
-from web import app
+
+def _pause_on_exit(msg=""):
+    """崩溃时保持控制台窗口打开，方便看错误"""
+    if msg:
+        print("\n" + "=" * 60)
+        print(msg)
+        print("=" * 60)
+    try:
+        input("\n按回车键退出...")
+    except Exception:
+        try:
+            os.system("pause")
+        except Exception:
+            pass
 
 
-def run_flask():
-    app.run(host="127.0.0.1", port=5000, debug=False, use_reloader=False)
+def main():
+    import traceback
+    try:
+        import webview
+    except Exception as e:
+        traceback.print_exc()
+        _pause_on_exit(f"❌ 加载 pywebview 失败: {e}\n请检查 PyInstaller 是否正确打包了 webview 模块")
+        return
+    try:
+        from web import app
+    except Exception as e:
+        traceback.print_exc()
+        _pause_on_exit(f"❌ 加载 web 模块失败: {e}")
+        return
+
+    def run_flask():
+        try:
+            app.run(host="127.0.0.1", port=5000, debug=False, use_reloader=False)
+        except Exception:
+            traceback.print_exc()
+
+    try:
+        t = threading.Thread(target=run_flask, daemon=True)
+        t.start()
+        time.sleep(0.8)
+        webview.create_window(
+            "🧾 微信记账机器人",
+            "http://127.0.0.1:5000",
+            width=1100,
+            height=750,
+            resizable=True,
+        )
+        webview.start()
+    except Exception as e:
+        traceback.print_exc()
+        _pause_on_exit(f"❌ 窗口启动失败: {e}")
 
 
 if __name__ == "__main__":
-    # Flask 在后台线程启动
-    t = threading.Thread(target=run_flask, daemon=True)
-    t.start()
-    # 等服务起来
-    time.sleep(0.8)
-    # 创建窗口
-    webview.create_window(
-        "🧾 微信记账机器人",
-        "http://127.0.0.1:5000",
-        width=1100,
-        height=750,
-        resizable=True,
-    )
-    webview.start()
+    main()
 
