@@ -1,8 +1,6 @@
 flask>=3.0.0
 openpyxl>=3.1.0
 pywebview>=6.0
-# pywebview 在 Windows 用 EdgeChromium/WinForms 后端，需要 pythonnet/clr-loader
-pythonnet>=3.0.3; sys_platform == 'win32'
 # 微信自动监听（仅 Windows）
 wxauto>=39.1.16; sys_platform == 'win32'
 

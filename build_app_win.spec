@@ -76,7 +76,6 @@ a = Analysis(
        + _fl_datas + _jj_datas + _wz_datas + _id_datas + _ck_datas + _bk_datas),
     hiddenimports=([
         'engine', 'parser', 'models', 'config', 'wechat', 'wechat_auto', 'report', 'web',
-        'clr_loader', 'clr_loader.netfx', 'clr_loader.types',
         'proxy_tools', 'bottle', 'typing_extensions',
         'flask', 'jinja2', 'werkzeug', 'itsdangerous', 'click', 'blinker',
         'openpyxl',
