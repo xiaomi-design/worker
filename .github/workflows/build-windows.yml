@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch:    # 允许手动触发
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'   # 提前切到 Node.js 24，消除 Node 20 弃用警告
+
 jobs:
   build-windows:
     runs-on: windows-latest
