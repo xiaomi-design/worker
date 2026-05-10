@@ -3,10 +3,10 @@
 新格式（金额嵌入下注文本，用 / 分隔）:
   单点: "3/1000"                →  SINGLE(3), amount=1000
   保:   "2/3/1000"              →  BAO(main=2, subs=[3]), amount=1000
-        "2/3/4/1000"            →  BAO(main=2, subs=[3,4]), amount=1000（最多保两个子）
-  载:   "2//3/1000"             →  ZAI(main=2, subs=[3]), amount=1000
+        "1/23/1000"             →  BAO(main=1, subs=[2,3]), amount=1000（短写法）
+        "2/3/4/1000"            →  BAO(main=2, subs=[3,4]), amount=1000（长写法，最多保两个子）
+  仔:   "2//3/1000"             →  ZAI(main=2, subs=[3]), amount=1000
   三码: "234/1000"              →  SANMA(main=2, subs=[3,4]), amount=1000
-  平波: "2345/1000"             →  PINGBO(main=2, subs=[3,4,5]), amount=1000
   多下注: "3/1000///2/3/500"    →  用 /// 隔开多个下注
 """
 import re
@@ -125,31 +125,41 @@ def _parse_single_bet(text: str) -> Optional[ParsedBet]:
                 raise ParseError("三码号码不能重复")
             return ParsedBet(BetType.SANMA, nums[0], nums[1:], amount, text)
 
-        if len(token) == 4 and token.isdigit():
-            # 平波: "2345/1000"
-            nums = [int(c) for c in token]
-            for n in nums:
-                if not _valid_num(n):
-                    raise ParseError(f"平波号码必须在 {DICE_MIN}-{DICE_MAX} 之间")
-            if len(set(nums)) != 4:
-                raise ParseError("平波号码不能重复")
-            return ParsedBet(BetType.PINGBO, nums[0], nums[1:], amount, text)
-
         raise ParseError(f"无法识别的下注格式: {text}")
 
-    # 保规则: "2/3/1000" 或 "2/3/4/1000"
+    # 保规则: "2/3/1000" / "1/23/1000"（短写法）/ "2/3/4/1000"（长写法）
     if len(num_parts) == 2 or len(num_parts) == 3:
-        nums = []
-        for p in num_parts:
-            if not p.isdigit() or len(p) != 1:
-                raise ParseError(f"保规则号码必须是单个数字: {p}")
-            nums.append(int(p))
-        for n in nums:
+        main_s = num_parts[0]
+        if not main_s.isdigit() or len(main_s) != 1:
+            raise ParseError(f"保规则主号必须是单个数字: {main_s}")
+        main_n = int(main_s)
+
+        sub_nums: List[int] = []
+        if len(num_parts) == 2:
+            # 主号 + 子段：子段可为单数字（保 1 个）或两位连写（保 2 个）
+            sub_token = num_parts[1]
+            if not sub_token.isdigit():
+                raise ParseError(f"保规则子号必须是数字: {sub_token}")
+            if len(sub_token) == 1:
+                sub_nums = [int(sub_token)]
+            elif len(sub_token) == 2:
+                sub_nums = [int(c) for c in sub_token]
+            else:
+                raise ParseError("保规则最多保两个子（子段最多 2 位）")
+        else:
+            # 长写法：主号 + 两个独立子号
+            for p in num_parts[1:]:
+                if not p.isdigit() or len(p) != 1:
+                    raise ParseError(f"保规则号码必须是单个数字: {p}")
+                sub_nums.append(int(p))
+
+        all_nums = [main_n] + sub_nums
+        for n in all_nums:
             if not _valid_num(n):
                 raise ParseError(f"号码必须在 {DICE_MIN}-{DICE_MAX} 之间")
-        if len(set(nums)) != len(nums):
+        if len(set(all_nums)) != len(all_nums):
             raise ParseError("保规则号码不能重复")
-        return ParsedBet(BetType.BAO, nums[0], nums[1:], amount, text)
+        return ParsedBet(BetType.BAO, main_n, sub_nums, amount, text)
 
     raise ParseError(f"无法识别的下注格式: {text}")
 

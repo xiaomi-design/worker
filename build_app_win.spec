@@ -15,9 +15,11 @@ a = Analysis(
     binaries=[],
     datas=[
         ('templates', 'templates'),
+        ('static', 'static'),
     ],
     hiddenimports=[
-        'engine', 'parser', 'models', 'config', 'wechat', 'report', 'web',
+        'engine', 'parser', 'models', 'config', 'wechat', 'wechat_auto', 'report', 'web',
+        'wxauto', 'uiautomation', 'comtypes',
     ],
     hookspath=[],
     hooksconfig={},

@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from flask import Flask, render_template, request, jsonify, send_file
 from engine import GameEngine, EngineError
 from report import export_game_csv
+from wechat_auto import get_listener
 
 app = Flask(__name__)
 engine = GameEngine()
@@ -297,6 +298,54 @@ def download_report():
     if filepath and os.path.exists(filepath):
         return send_file(filepath, as_attachment=True)
     return jsonify(ok=False, msg="文件不存在")
+
+
+# ========== 微信自动监听（Windows 专用） ==========
+
+def _on_wechat_message(bound_group: str, sender: str, content: str):
+    """监听器回调：自动加成员 + 尝试当下注解析；解析失败的闲聊静默忽略"""
+    try:
+        engine.add_group(bound_group)  # 幂等：群已存在则跳过
+        engine.add_member(bound_group, sender)
+    except Exception:
+        pass
+    try:
+        engine.place_bet(bound_group, sender, content)
+    except Exception:
+        # 不是下注消息（普通聊天）/无开局/格式错，全部静默忽略
+        pass
+
+
+@app.route("/api/listener/status")
+def listener_status():
+    return jsonify(ok=True, **get_listener().status())
+
+
+@app.route("/api/listener/start", methods=["POST"])
+def listener_start():
+    data = request.json or {}
+    bound_group = (data.get("group") or "").strip()
+    wechat_group = (data.get("wechat_group") or "").strip()
+    if not bound_group or not wechat_group:
+        return jsonify(ok=False, msg="参数缺失：group / wechat_group")
+    try:
+        get_listener().start(wechat_group, bound_group, _on_wechat_message)
+        return jsonify(ok=True, msg=f"已开始监听微信群「{wechat_group}」")
+    except Exception as e:
+        return jsonify(ok=False, msg=str(e))
+
+
+@app.route("/api/listener/stop", methods=["POST"])
+def listener_stop():
+    data = request.json or {}
+    wechat_group = (data.get("wechat_group") or "").strip()
+    if not wechat_group:
+        return jsonify(ok=False, msg="参数缺失：wechat_group")
+    try:
+        get_listener().stop(wechat_group)
+        return jsonify(ok=True, msg=f"已停止监听「{wechat_group}」")
+    except Exception as e:
+        return jsonify(ok=False, msg=str(e))
 
 
 if __name__ == "__main__":

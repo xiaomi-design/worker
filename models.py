@@ -8,10 +8,9 @@ from datetime import datetime
 class BetType(Enum):
     """下注类型"""
     SINGLE = "single"           # 单点下注  e.g. 3/1000
-    BAO = "bao"                 # 保规则    e.g. 2/3/1000  2/3/4/1000（最多保两个子）
-    ZAI = "zai"                 # 载规则    e.g. 2//3/1000（最多载一个子）
+    BAO = "bao"                 # 保规则    e.g. 2/3/1000  1/23/1000  2/3/4/1000（最多保两个子）
+    ZAI = "zai"                 # 仔规则    e.g. 2//3/1000（最多仔一个子）
     SANMA = "sanma"             # 三码下注  e.g. 234/1000
-    PINGBO = "pingbo"           # 平波下注  e.g. 2345/1000
 
 
 class GameStatus(Enum):

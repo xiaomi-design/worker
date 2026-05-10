@@ -24,20 +24,12 @@ body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:#fff;colo
 .main-table{width:100%;border-collapse:collapse;}
 .main-table th,.main-table td{border:1px solid #ccc;padding:3px 6px;text-align:center;vertical-align:middle;}
 .main-table th{background:#f5f5f5;font-weight:bold;font-size:12px;color:#333;}
-.main-table td{font-size:13px;}
+.main-table td{font-size:13px;white-space:pre-line;}
 .summary-row td{background:#ffe0e0;font-weight:bold;color:#c00;}
 .bet-edit:hover{background:#fffbe6;}
 .bet-invalid{background:#ffd6d6 !important;color:#c00;font-weight:bold;}
 .bet-invalid:hover{background:#ffbcbc !important;}
-/* 截图（打印）只保留 骰子栏 + 主表格 */
-@media print{
-  body *{visibility:hidden;}
-  #shotArea,#shotArea *{visibility:visible;}
-  #shotArea{position:absolute;left:0;top:0;width:100%;}
-  .topbar,.op-bar,.input-area,.rank-section,.toast,.modal-overlay{display:none !important;}
-  .bet-edit{cursor:default !important;}
-  .bet-edit span{display:none !important;}
-}
+
 .no-border-top{border-top:none !important;}
 .no-border-bottom{border-bottom:none !important;}
 td.left{text-align:left;}
@@ -72,7 +64,7 @@ td.left{text-align:left;}
 .modal-overlay.show{display:flex;}
 .modal{background:#fff;border-radius:6px;padding:16px;width:280px;border:1px solid #ccc;}
 .modal h3{margin-bottom:10px;font-size:14px;}
-.modal input{width:100%;padding:6px;border:1px solid #ccc;margin-bottom:10px;font-size:14px;}
+.modal input,.modal textarea{width:100%;padding:6px;border:1px solid #ccc;margin-bottom:10px;font-size:14px;font-family:inherit;resize:vertical;}
 .modal .btns{display:flex;gap:6px;}
 .modal .btns button{flex:1;padding:6px;border:1px solid #ccc;border-radius:3px;font-size:13px;cursor:pointer;}
 .modal .btns .ok{background:#1890ff;color:#fff;border-color:#1890ff;}
@@ -101,6 +93,9 @@ td.left{text-align:left;}
 <div class="topbar">
   <span style="font-weight:bold;font-size:13px;">群:</span>
   <span id="groupBar"><button class="add-btn" onclick="showModal('addGroupModal')">+ 添加</button></span>
+  <span class="sep">|</span>
+  <button id="listenerBtn" onclick="toggleListener()" title="自动监听微信群消息（仅 Windows）">🎙️ 自动监听</button>
+  <span id="listenerStatus" style="font-size:12px;color:#1565d8;font-weight:bold;"></span>
 </div>
 
 <!-- 截图区：骰子栏 + 主表格 -->
@@ -111,7 +106,7 @@ td.left{text-align:left;}
   <!-- 主表格 -->
   <table class="main-table" id="mainTable" style="display:none;">
     <thead>
-      <tr><th style="width:30px;">序号</th><th style="width:60px;">总账</th><th style="width:100px;">名称</th><th>投入</th><th style="width:60px;">输赢</th><th style="width:60px;">本筒</th></tr>
+      <tr><th style="width:30px;">序号</th><th style="width:60px;">总账</th><th style="width:100px;">名称</th><th style="width:150px;">投入</th><th style="width:60px;">输赢</th><th style="width:60px;">本筒</th></tr>
     </thead>
     <tbody id="mainBody"></tbody>
   </table>
@@ -155,10 +150,17 @@ td.left{text-align:left;}
 <!-- 指定开奖 -->
 <div class="modal-overlay" id="diceModal"><div class="modal"><h3>指定开奖 (1-6)</h3><input id="diceNumber" type="number" min="1" max="6" placeholder="1-6"><div class="btns"><button onclick="hideModal('diceModal')">取消</button><button class="ok" onclick="openDiceManual()">开奖</button></div></div></div>
 <!-- 修改下注 -->
-<div class="modal-overlay" id="editBetModal"><div class="modal"><h3>修改下注</h3><div id="editBetInfo" style="font-size:12px;color:#999;margin-bottom:6px;"></div><input id="editBetText" placeholder="新下注内容"><div class="btns"><button onclick="hideModal('editBetModal')">取消</button><button class="ok" onclick="submitEditBet()">确认</button></div></div></div>
+<div class="modal-overlay" id="editBetModal"><div class="modal"><h3>修改下注</h3><div id="editBetInfo" style="font-size:12px;color:#999;margin-bottom:6px;"></div><textarea id="editBetText" rows="5" placeholder="每行一条下注，多行自动用 /// 合并"></textarea><div class="btns"><button onclick="hideModal('editBetModal')">取消</button><button class="ok" onclick="submitEditBet()">确认</button></div></div></div>
+<!-- 截图预览 -->
+<div class="modal-overlay" id="shotModal"><div class="modal" style="width:auto;max-width:90vw;max-height:90vh;overflow:auto;"><h3>截图预览</h3><div style="margin-bottom:10px;text-align:center;"><img id="shotImg" style="max-width:100%;border:1px solid #ddd;"></div><div class="btns"><button onclick="hideModal('shotModal')">关闭</button><button class="ok" onclick="downloadShot()">💾 保存到本地</button></div></div></div>
+<!-- 自动监听微信群 -->
+<div class="modal-overlay" id="listenerModal"><div class="modal"><h3>自动监听微信群</h3><div style="font-size:12px;color:#666;margin-bottom:8px;line-height:1.5;">绑定本程序群「<span id="listenerBoundGroup" style="color:#1565d8;font-weight:bold;"></span>」<br>监听到的发言会自动加成员、解析下注。<br><span style="color:#c00;">⚠️ 仅 Windows + 已登录 PC 微信可用，请用小号。</span></div><input id="listenerWxGroupName" placeholder="微信群名（必须精确）"><div class="btns"><button onclick="hideModal('listenerModal')">取消</button><button class="ok" onclick="submitListener()">开始监听</button></div></div></div>
 
+<script src="/static/html2canvas.min.js"></script>
 <script>
 let currentGroup=null, editingBetIndex=-1, parsedBets=[];
+// 缓存每个群最近一次「1-6 换算」结果（开奖后 pending 清空也保留显示）
+const simCache={};
 const initGroups={{ groups|tojson }};
 
 window.onload=()=>{ initGroups.forEach(g=>renderGroupBtn(g)); };
@@ -176,16 +178,21 @@ function _trim(s){return s.indexOf('.')>=0?s.replace(/0+$/,'').replace(/\.$/,'')
 function _num(v){const s=_trim((v/SCALE).toFixed(4));return s===''||s==='-0'?'0':s;}
 function fmt(v){const x=v/SCALE;const s=_num(v);return s==='0'?'0':((x>0?'+':'')+s);}
 function fmtAmt(v){return _num(v);}
-// 把下注原文中的金额（每段最后一个/后的数字）按 SCALE 缩小
+// 把下注原文转成表格显示格式：
+//   /// → 换行；// → '>'（仔）；单 / → '.'（保）；金额按 SCALE 缩小
 function fmtBet(raw){
   if(!raw)return '';
   return raw.split('///').map(seg=>{
     const idx=seg.lastIndexOf('/');
-    if(idx<0)return seg;
-    const amt=parseFloat(seg.substring(idx+1));
-    if(isNaN(amt))return seg;
-    return seg.substring(0,idx)+'/'+_num(amt);
-  }).join('///');
+    let body=seg, amtStr='';
+    if(idx>=0){
+      const amt=parseFloat(seg.substring(idx+1));
+      if(!isNaN(amt)){ body=seg.substring(0,idx); amtStr='/'+_num(amt); }
+    }
+    // // 必须先于单 / 替换，否则会被吞
+    body = body.replace(/\/\//g,'>').replace(/\//g,'.');
+    return body + amtStr;
+  }).join('\n');
 }
 // 检测下注金额是否合规（必须是 100 的整数倍）
 function isBetInvalid(amount){return !amount||(amount%100)!==0;}
@@ -207,6 +214,7 @@ function selectGroup(name){
   document.querySelectorAll('#groupBar button').forEach(b=>b.classList.toggle('active',b.dataset.group===name));
   ['mainTable','inputArea','opBar'].forEach(id=>document.getElementById(id).style.display='');
   refresh();
+  refreshListenerStatus();
 }
 function addGroup(){
   const name=document.getElementById('newGroupName').value.trim();
@@ -219,12 +227,13 @@ function removeGroup(){
   if(!confirm('确定解散 ['+currentGroup+']？'))return;
   post('/api/group/remove',{name:currentGroup},d=>{
     document.querySelectorAll('#groupBar button').forEach(b=>{if(b.dataset.group===currentGroup)b.remove();});
+    delete simCache[currentGroup];
     currentGroup=null;
     ['mainTable','inputArea','opBar','rankSection'].forEach(id=>document.getElementById(id).style.display='none');
     document.getElementById('diceBar').style.display='none';
   });
 }
-function confirmNewGame(){if(!currentGroup)return;if(!confirm('确定开始新一局？'))return;api('new');}
+function confirmNewGame(){if(!currentGroup)return;if(!confirm('确定开始新一局？'))return;delete simCache[currentGroup];api('new');}
 function api(action){
   if(!currentGroup)return toast('请先选择群',false);
   const urls={new:'/api/game/new',seal:'/api/game/seal',open:'/api/game/open',end:'/api/game/end',export:'/api/report/export'};
@@ -247,8 +256,8 @@ function placeBet(){
   if(!user||!bet_text)return toast('请填写完整',false);
   post('/api/bet',{group:currentGroup,user,bet_text},()=>{document.getElementById('betText').value='';refresh();});
 }
-function editBet(index,user,rawText){editingBetIndex=index;document.getElementById('editBetInfo').textContent='玩家: '+user;document.getElementById('editBetText').value=rawText;showModal('editBetModal');}
-function submitEditBet(){const t=document.getElementById('editBetText').value.trim();if(!t)return toast('请输入',false);post('/api/bet/update',{group:currentGroup,index:editingBetIndex,bet_text:t},()=>{hideModal('editBetModal');refresh();});}
+function editBet(index,user,rawText){editingBetIndex=index;document.getElementById('editBetInfo').textContent='玩家: '+user;document.getElementById('editBetText').value=(rawText||'').split('///').join('\n');showModal('editBetModal');}
+function submitEditBet(){const lines=document.getElementById('editBetText').value.split('\n').map(s=>s.trim()).filter(Boolean);if(!lines.length)return toast('请输入',false);const t=lines.join('///');post('/api/bet/update',{group:currentGroup,index:editingBetIndex,bet_text:t},()=>{hideModal('editBetModal');refresh();});}
 function deleteBet(index){if(!confirm('删除此注？'))return;post('/api/bet/remove',{group:currentGroup,index},()=>refresh());}
 function addMember(){const name=document.getElementById('newMemberName')?.value?.trim();if(!name||!currentGroup)return;post('/api/member/add',{group:currentGroup,name},()=>refresh());}
 function removeMember(name){if(!confirm('移除 '+name+'？'))return;post('/api/member/remove',{group:currentGroup,name},()=>refresh());}
@@ -270,7 +279,64 @@ function pasteFromClipboard(){
   });
 }
 
-function takeScreenshot(){window.print();}
+function takeScreenshot(){
+  if(typeof html2canvas==='undefined')return toast('截图库未加载',false);
+  const node=document.getElementById('shotArea');
+  if(!node)return toast('找不到截图区域',false);
+  toast('正在生成截图...');
+  html2canvas(node,{backgroundColor:'#ffffff',scale:2,useCORS:true}).then(canvas=>{
+    const dataUrl=canvas.toDataURL('image/png');
+    document.getElementById('shotImg').src=dataUrl;
+    showModal('shotModal');
+  }).catch(err=>{toast('截图失败: '+err.message,false);});
+}
+function downloadShot(){
+  const img=document.getElementById('shotImg');
+  if(!img.src)return;
+  const ts=new Date(),pad=n=>String(n).padStart(2,'0');
+  const fname=(currentGroup||'下注')+'_'+ts.getFullYear()+pad(ts.getMonth()+1)+pad(ts.getDate())+'_'+pad(ts.getHours())+pad(ts.getMinutes())+pad(ts.getSeconds())+'.png';
+  const a=document.createElement('a');
+  a.href=img.src;a.download=fname;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+// ===== 微信自动监听 =====
+function toggleListener(){
+  if(!currentGroup)return toast('请先选择群',false);
+  fetch('/api/listener/status').then(r=>r.json()).then(d=>{
+    const mine=(d.watchers||[]).find(w=>w.bound_group===currentGroup);
+    if(mine){
+      if(!confirm('确定停止监听微信群「'+mine.wechat_group+'」？'))return;
+      post('/api/listener/stop',{wechat_group:mine.wechat_group},()=>refreshListenerStatus());
+    } else {
+      if(!d.available)return toast('监听不可用: '+(d.import_error||'非 Windows 平台'),false);
+      document.getElementById('listenerBoundGroup').textContent=currentGroup;
+      document.getElementById('listenerWxGroupName').value='';
+      showModal('listenerModal');
+    }
+  });
+}
+function submitListener(){
+  const wg=document.getElementById('listenerWxGroupName').value.trim();
+  if(!wg)return toast('请输入微信群名',false);
+  post('/api/listener/start',{group:currentGroup,wechat_group:wg},()=>{hideModal('listenerModal');refreshListenerStatus();});
+}
+function refreshListenerStatus(){
+  fetch('/api/listener/status').then(r=>r.json()).then(d=>{
+    const btn=document.getElementById('listenerBtn');
+    const st=document.getElementById('listenerStatus');
+    const mine=(d.watchers||[]).find(w=>w.bound_group===currentGroup);
+    if(mine){
+      btn.textContent='⏹️ 停止监听';
+      btn.style.background='#ffebee';
+      st.textContent='🟢 监听中: '+mine.wechat_group;
+    } else {
+      btn.textContent='🎙️ 自动监听';
+      btn.style.background='';
+      st.textContent='';
+    }
+  });
+}
 
 function clearRound(){
   if(!currentGroup)return;
@@ -300,14 +366,20 @@ function refresh(){
   fetch('/api/status?group='+encodeURIComponent(currentGroup)).then(r=>r.json()).then(d=>{
     if(!d.ok)return;
     const bets=d.pending_bets||[], members=d.members||[], summary=d.summary, results=d.all_results||[], rankings=d.rankings;
-    // 1-6 骰子栏一直显示
-    if(bets.length){loadSim(summary);} else {renderDiceBarPlain(summary);}
+    // 1-6 骰子栏一直显示：有 pending → 实时模拟；没有但有缓存 → 用缓存（开奖后保留显示）；都没有 → 仅 1-6
+    if(bets.length){
+      loadSim(summary);
+    } else if(simCache[currentGroup]){
+      renderDiceBarFromSim(simCache[currentGroup], summary);
+    } else {
+      renderDiceBarPlain(summary);
+    }
     renderMainTable(members,bets,summary,results);
     renderRankings(rankings);
   });
 }
 
-// 没有未结算下注时：仅显示 1-6（最近一筒高亮）
+// 仅显示 1-6（最近一筒高亮）
 function renderDiceBarPlain(summary){
   const bar=document.getElementById('diceBar');
   bar.style.display='flex';
@@ -319,18 +391,25 @@ function renderDiceBarPlain(summary){
   }).join('');
 }
 
-// 有未结算下注时：1-6 + 每个号码的庄家盈亏（最近一筒号码也高亮）
+// 用 sim 结果渲染骰子栏（每个号码 + 庄家盈亏）
+function renderDiceBarFromSim(results, summary){
+  const opened=(summary&&summary.dice_results)||[];
+  const latest=opened.length?opened[opened.length-1]:null;
+  const bar=document.getElementById('diceBar');bar.style.display='flex';
+  bar.innerHTML=results.map(r=>{
+    const cls=r.banker_profit>=0?'win':'lose';
+    const numCls=(r.dice===latest)?'num opened':'num';
+    return `<div class="dice-item"><span class="${numCls}">${r.dice}</span><span class="${cls}">${fmt(r.banker_profit)}</span></div>`;
+  }).join('');
+}
+
+// 实时拉模拟结果并写入缓存
 function loadSim(summary){
-  fetch('/api/simulate?group='+encodeURIComponent(currentGroup)).then(r=>r.json()).then(d=>{
+  const grp=currentGroup;
+  fetch('/api/simulate?group='+encodeURIComponent(grp)).then(r=>r.json()).then(d=>{
     if(!d.ok||!d.results.length){renderDiceBarPlain(summary);return;}
-    const opened=(summary&&summary.dice_results)||[];
-    const latest=opened.length?opened[opened.length-1]:null;
-    const bar=document.getElementById('diceBar');bar.style.display='flex';
-    bar.innerHTML=d.results.map(r=>{
-      const cls=r.banker_profit>=0?'win':'lose';
-      const numCls=(r.dice===latest)?'num opened':'num';
-      return `<div class="dice-item"><span class="${numCls}">${r.dice}</span><span class="${cls}">${fmt(r.banker_profit)}</span></div>`;
-    }).join('');
+    simCache[grp]=d.results;
+    renderDiceBarFromSim(d.results, summary);
   });
 }
 

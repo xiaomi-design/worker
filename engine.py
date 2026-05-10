@@ -8,10 +8,11 @@ from parser import parse_message, ParseError
 from config import (
     DICE_MIN, DICE_MAX,
     ODDS_SINGLE,
-    ODDS_BAO_MAIN,
-    ODDS_ZAI_MAIN, ODDS_ZAI_SUB,
-    ODDS_SANMA_CONTAINS_1, ODDS_SANMA_NO_1,
-    ODDS_PINGBO,
+    ODDS_BAO_1_SUB1, ODDS_BAO_1_SUB2,
+    ODDS_BAO_X_SUB1_HAS1, ODDS_BAO_X_SUB1_NO1,
+    ODDS_BAO_X_SUB2_HAS1, ODDS_BAO_X_SUB2_NO1,
+    ODDS_ZAI_1, ODDS_ZAI_X_SUB_1, ODDS_ZAI_X_SUB_NO1, ODDS_ZAI_SUB,
+    ODDS_SANMA_NO1, ODDS_SANMA_HAS1_HIT_1, ODDS_SANMA_HAS1_HIT_OTHER,
 )
 
 
@@ -98,7 +99,7 @@ class GameEngine:
     # ---- 局管理 ----
 
     def new_game(self, group_name: str) -> Game:
-        """开始新一局"""
+        """开始新一局（清空上一局的玩家累计统计，保留成员名单）"""
         gs = self.get_group(group_name)
         if gs.current_game and gs.current_game.status != GameStatus.ENDED:
             raise EngineError(f"[{group_name}] 第 {gs.current_game.id} 局尚未结束，请先结束本局")
@@ -107,6 +108,12 @@ class GameEngine:
         gs.pending_bets = []
         gs.all_results = []
         gs.all_bets = []
+        # 清掉上一局的玩家累计统计
+        for m in gs.members.values():
+            m.total_bet_amount = 0.0
+            m.total_win = 0.0
+            m.total_lose = 0.0
+            m.total_profit = 0.0
         print(f"✅ [{group_name}] 第 {gs.current_game.id} 局已开始，等待下注...")
         return gs.current_game
 
@@ -257,42 +264,59 @@ class GameEngine:
 
     @staticmethod
     def _calc_single(pb: ParsedBet, dice: int) -> float:
-        """计算单条解析下注的盈亏（金额从 ParsedBet.amount 取）"""
+        """计算单条解析下注的盈亏（金额从 ParsedBet.amount 取）
+
+        约定：所有 ODDS_* 为「净赚倍数」，profit = amount × multiplier。
+        退本金（不吃不赔）= 0；输 = -amount。
+        """
         main = pb.main_number
         subs = pb.sub_numbers
         amount = pb.amount
 
         if pb.bet_type == BetType.SINGLE:
             if dice == main:
-                return amount * ODDS_SINGLE[main] - amount
+                return amount * ODDS_SINGLE[main]
             return -amount
 
         if pb.bet_type == BetType.BAO:
+            # 主号赔率按 (主是否=1, 保子数, 子是否含1) 分支
+            if main == 1:
+                main_mult = ODDS_BAO_1_SUB1 if len(subs) == 1 else ODDS_BAO_1_SUB2
+            else:
+                has_1 = 1 in subs
+                if len(subs) == 1:
+                    main_mult = ODDS_BAO_X_SUB1_HAS1 if has_1 else ODDS_BAO_X_SUB1_NO1
+                else:
+                    main_mult = ODDS_BAO_X_SUB2_HAS1 if has_1 else ODDS_BAO_X_SUB2_NO1
             if dice == main:
-                return amount * ODDS_BAO_MAIN - amount
+                return amount * main_mult
             if dice in subs:
-                return 0.0
+                return 0.0      # 保子退本金
             return -amount
 
         if pb.bet_type == BetType.ZAI:
+            # 仔规则只允许 1 个子（由 parser 限制）
+            sub = subs[0] if subs else None
+            if main == 1:
+                main_mult = ODDS_ZAI_1
+            elif sub == 1:
+                main_mult = ODDS_ZAI_X_SUB_1
+            else:
+                main_mult = ODDS_ZAI_X_SUB_NO1
             if dice == main:
-                return amount * ODDS_ZAI_MAIN - amount
-            if dice in subs:
-                return amount * ODDS_ZAI_SUB - amount
+                return amount * main_mult
+            if dice == sub:
+                return amount * ODDS_ZAI_SUB
             return -amount
 
         if pb.bet_type == BetType.SANMA:
             all_nums = [main] + subs
             if dice in all_nums:
                 if 1 in all_nums:
-                    return amount * ODDS_SANMA_CONTAINS_1 - amount
-                return amount * ODDS_SANMA_NO_1 - amount
-            return -amount
-
-        if pb.bet_type == BetType.PINGBO:
-            all_nums = [main] + subs
-            if dice in all_nums:
-                return amount * ODDS_PINGBO - amount
+                    if dice == 1:
+                        return amount * ODDS_SANMA_HAS1_HIT_1
+                    return amount * ODDS_SANMA_HAS1_HIT_OTHER
+                return amount * ODDS_SANMA_NO1
             return -amount
 
         return -amount
