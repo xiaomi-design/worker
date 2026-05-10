@@ -1,6 +1,5 @@
 flask>=3.0.0
 openpyxl>=3.1.0
 pywebview>=6.0
-# 微信自动监听（仅 Windows）
-wxauto>=39.1.16; sys_platform == 'win32'
+# wxauto 在 workflow 中单独从 GitHub/镜像安装（PyPI 主源已下架）
 

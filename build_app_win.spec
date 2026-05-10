@@ -28,7 +28,9 @@ print(f"[spec] webview collected: {len(_wv_datas)} data, {len(_wv_bins)} bin, {l
 if not _wv_hidden:
     raise SystemExit("[spec] FATAL: collect_all('webview') 返回空，pywebview 安装可能损坏")
 
-# 完整收集 wxauto（依赖 uiautomation/comtypes 类型库）— 缺失不致命，仅警告
+# 必须硬性收集（缺了直接炸掉打包，避免出 zip 后用户才发现 ModuleNotFound）
+_STRICT_PKGS = {'flask', 'jinja2', 'werkzeug', 'wxauto', 'uiautomation', 'comtypes'}
+
 def _safe_collect(pkg):
     try:
         d, b, h = collect_all(pkg)
@@ -38,11 +40,6 @@ def _safe_collect(pkg):
         print(f"[spec] WARN: collect_all({pkg!r}) failed: {e}")
         return [], [], []
 
-_wa_datas, _wa_bins, _wa_hidden = _safe_collect('wxauto')
-_ua_datas, _ua_bins, _ua_hidden = _safe_collect('uiautomation')
-_ct_datas, _ct_bins, _ct_hidden = _safe_collect('comtypes')
-
-# Flask 全家桶 — 必须硬性收集，缺了直接炸掉打包
 def _strict_collect(pkg):
     try:
         import importlib
@@ -52,10 +49,13 @@ def _strict_collect(pkg):
         raise SystemExit(f"[spec] FATAL: {pkg} 未安装在打包 Python 中: {e}")
     d, b, h = collect_all(pkg)
     print(f"[spec] {pkg} collected: {len(d)} data, {len(b)} bin, {len(h)} hidden")
-    if not h and pkg in ('flask', 'jinja2', 'werkzeug'):
+    if not h and pkg in _STRICT_PKGS:
         raise SystemExit(f"[spec] FATAL: collect_all({pkg!r}) 返回空，无法继续")
     return d, b, h
 
+_wa_datas, _wa_bins, _wa_hidden = _strict_collect('wxauto')
+_ua_datas, _ua_bins, _ua_hidden = _strict_collect('uiautomation')
+_ct_datas, _ct_bins, _ct_hidden = _strict_collect('comtypes')
 _fl_datas, _fl_bins, _fl_hidden = _strict_collect('flask')
 _jj_datas, _jj_bins, _jj_hidden = _strict_collect('jinja2')
 _wz_datas, _wz_bins, _wz_hidden = _strict_collect('werkzeug')
