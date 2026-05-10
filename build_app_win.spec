@@ -7,20 +7,29 @@
 生成结果：dist\\微信记账机器人\\微信记账机器人.exe
 """
 
+from PyInstaller.utils.hooks import collect_all
+
 block_cipher = None
+
+# 完整收集 pywebview（动态加载 winforms/edge 后端，必须用 collect_all）
+_wv_datas, _wv_bins, _wv_hidden = collect_all('webview')
+# 完整收集 wxauto（依赖 uiautomation/comtypes 类型库）
+_wa_datas, _wa_bins, _wa_hidden = collect_all('wxauto')
+_ua_datas, _ua_bins, _ua_hidden = collect_all('uiautomation')
+_ct_datas, _ct_bins, _ct_hidden = collect_all('comtypes')
 
 a = Analysis(
     ['app.py'],
     pathex=[],
-    binaries=[],
+    binaries=_wv_bins + _wa_bins + _ua_bins + _ct_bins,
     datas=[
         ('templates', 'templates'),
         ('static', 'static'),
-    ],
+    ] + _wv_datas + _wa_datas + _ua_datas + _ct_datas,
     hiddenimports=[
         'engine', 'parser', 'models', 'config', 'wechat', 'wechat_auto', 'report', 'web',
-        'wxauto', 'uiautomation', 'comtypes',
-    ],
+        'clr_loader', 'clr_loader.netfx', 'clr_loader.types',
+    ] + _wv_hidden + _wa_hidden + _ua_hidden + _ct_hidden,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
