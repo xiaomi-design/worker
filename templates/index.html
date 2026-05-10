@@ -154,7 +154,39 @@ td.left{text-align:left;}
 <!-- 截图预览 -->
 <div class="modal-overlay" id="shotModal"><div class="modal" style="width:auto;max-width:90vw;max-height:90vh;overflow:auto;"><h3>截图预览</h3><div style="margin-bottom:10px;text-align:center;"><img id="shotImg" style="max-width:100%;border:1px solid #ddd;"></div><div class="btns"><button onclick="hideModal('shotModal')">关闭</button><button class="ok" onclick="downloadShot()">💾 保存到本地</button></div></div></div>
 <!-- 自动监听微信群 -->
-<div class="modal-overlay" id="listenerModal"><div class="modal"><h3>自动监听微信群</h3><div style="font-size:12px;color:#666;margin-bottom:8px;line-height:1.5;">绑定本程序群「<span id="listenerBoundGroup" style="color:#1565d8;font-weight:bold;"></span>」<br>监听到的发言会自动加成员、解析下注。<br><span style="color:#c00;">⚠️ 仅 Windows + 已登录 PC 微信可用，请用小号。</span></div><input id="listenerWxGroupName" placeholder="微信群名（必须精确）"><div class="btns"><button onclick="hideModal('listenerModal')">取消</button><button class="ok" onclick="submitListener()">开始监听</button></div></div></div>
+<div class="modal-overlay" id="listenerModal"><div class="modal"><h3>自动监听微信群</h3>
+<div style="font-size:12px;color:#555;line-height:1.7;margin-bottom:10px;">
+  输入要监听的微信群名，开启后<b>群里的发言会自动同步到本程序</b>：自动建群、加成员、解析下注；非下注的普通聊天会被静默忽略。
+  <div style="margin-top:8px;padding:8px 10px;background:#e7f1ff;border-left:3px solid #1565d8;border-radius:3px;">
+    <b style="color:#1565d8;">✅ 启动前请确认</b>
+    <ol style="margin:4px 0 0 20px;padding:0;">
+      <li>仅支持 <b>Windows</b> + 已登录 <b>PC 端微信</b>（Mac / 网页版 / 手机端不可用）。</li>
+      <li>PC 微信主窗口处于<b>正常打开</b>状态，<b>不要最小化到系统托盘</b>。</li>
+      <li>启动前在微信里<b>手动点开一次该群</b>，确保它出现在左侧会话列表。</li>
+      <li>群名必须与微信里<b>完全一致</b>（含大小写、空格、emoji、繁简体）。</li>
+    </ol>
+  </div>
+  <div style="margin-top:8px;padding:8px 10px;background:#fff7e6;border-left:3px solid #f59e0b;border-radius:3px;color:#7a4a00;">
+    <b>⚠️ 注意事项</b>
+    <ol style="margin:4px 0 0 20px;padding:0;">
+      <li>监听期间<b>不要关闭/重启微信</b>，也不要切换微信账号；否则需要重新点"开始监听"。</li>
+      <li>本程序<b>只读取消息</b>，不会替你向微信群发任何内容。</li>
+      <li>消息延迟约 1 秒（后台轮询）；漏消息可让玩家重发或手动补录。</li>
+      <li>停止监听后，已记录的下注/成员<b>不会丢失</b>，再次开启会接着累计。</li>
+      <li>强烈建议使用<b>小号</b>，避免主号触发微信风控被封。</li>
+    </ol>
+  </div>
+  <div style="margin-top:8px;padding:8px 10px;background:#fff1f0;border-left:3px solid #f5222d;border-radius:3px;color:#a8071a;">
+    <b>❗ 常见报错</b>
+    <ul style="margin:4px 0 0 20px;padding:0;list-style:disc;">
+      <li>「<b>1400 无效的窗口句柄</b>」：微信窗口被关闭/最小化到托盘/被切走了。按上面"启动前请确认"第 2、3 条检查后，再点一次"开始监听"即可自动重连。</li>
+      <li>「<b>找不到群</b>」/ 长时间无反应：群名拼写不一致，或该群未在会话列表里 —— 在微信里点开一次该群再重试。</li>
+      <li>「<b>监听不可用</b>」：当前不是 Windows，或未安装 wxauto。</li>
+    </ul>
+  </div>
+</div>
+<input id="listenerWxGroupName" placeholder="微信群名（必须精确，复制粘贴最稳）">
+<div class="btns"><button onclick="hideModal('listenerModal')">取消</button><button class="ok" onclick="submitListener()">开始监听</button></div></div></div>
 
 <script src="/static/html2canvas.min.js"></script>
 <script>
@@ -302,24 +334,29 @@ function downloadShot(){
 
 // ===== 微信自动监听 =====
 function toggleListener(){
-  if(!currentGroup)return toast('请先选择群',false);
   fetch('/api/listener/status').then(r=>r.json()).then(d=>{
-    const mine=(d.watchers||[]).find(w=>w.bound_group===currentGroup);
+    // 当前群正在被监听 → 停止；否则弹框新建一个
+    const mine=currentGroup?(d.watchers||[]).find(w=>w.bound_group===currentGroup):null;
     if(mine){
       if(!confirm('确定停止监听微信群「'+mine.wechat_group+'」？'))return;
       post('/api/listener/stop',{wechat_group:mine.wechat_group},()=>refreshListenerStatus());
-    } else {
-      if(!d.available)return toast('监听不可用: '+(d.import_error||'非 Windows 平台'),false);
-      document.getElementById('listenerBoundGroup').textContent=currentGroup;
-      document.getElementById('listenerWxGroupName').value='';
-      showModal('listenerModal');
+      return;
     }
+    if(!d.available)return toast('监听不可用: '+(d.import_error||'非 Windows 平台'),false);
+    document.getElementById('listenerWxGroupName').value='';
+    showModal('listenerModal');
   });
 }
 function submitListener(){
   const wg=document.getElementById('listenerWxGroupName').value.trim();
   if(!wg)return toast('请输入微信群名',false);
-  post('/api/listener/start',{group:currentGroup,wechat_group:wg},()=>{hideModal('listenerModal');refreshListenerStatus();});
+  // 本程序群名直接复用微信群名，第一条消息到达后后端会自动建群
+  post('/api/listener/start',{group:wg,wechat_group:wg},()=>{
+    hideModal('listenerModal');
+    const exists=Array.from(document.querySelectorAll('#groupBar button[data-group]')).some(b=>b.dataset.group===wg);
+    if(!exists)renderGroupBtn(wg);
+    selectGroup(wg);
+  });
 }
 function refreshListenerStatus(){
   fetch('/api/listener/status').then(r=>r.json()).then(d=>{

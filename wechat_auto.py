@@ -75,15 +75,37 @@ class WechatAutoListener:
         return self._wx
 
     def start(self, wechat_group: str, bound_group: str, on_message: OnMessage):
-        wx = self._ensure_wx()
         with self._watchers_lock:
             if wechat_group in self._watchers:
                 raise RuntimeError(f"已在监听微信群「{wechat_group}」")
+        wx = self._ensure_wx()
+        # 先把目标聊天切到前台，避免 AddListenChat 拿到失效句柄（错误码 1400）
+        try:
+            wx.ChatWith(wechat_group)
+        except Exception as e:
+            logger.debug("ChatWith 失败（忽略，继续尝试 AddListenChat）: %s", e)
+        try:
             try:
-                wx.AddListenChat(nickname=wechat_group)
-            except TypeError:
-                # 旧版本签名兼容
                 wx.AddListenChat(who=wechat_group)
+            except TypeError:
+                # 兼容老版/wxautox 的参数名
+                wx.AddListenChat(nickname=wechat_group)
+        except Exception as e:
+            msg = str(e)
+            low = msg.lower()
+            if "1400" in msg or "句柄" in msg or "handle" in low:
+                # 缓存的 WeChat 主窗口句柄已失效（微信被关闭/重启/最小化到托盘）
+                # 丢弃实例，下次 start 会重新抓取
+                with self._wx_lock:
+                    self._wx = None
+                raise RuntimeError(
+                    f"无法监听「{wechat_group}」：微信窗口句柄失效（{msg}）。\n"
+                    f"请确认：1) PC 微信已登录且主窗口未被关闭/最小化到托盘；"
+                    f"2) 该群在微信会话列表里能看到（先在微信里点开一次该群）；"
+                    f"然后重试。"
+                )
+            raise RuntimeError(f"添加监听失败：{msg}")
+        with self._watchers_lock:
             self._watchers[wechat_group] = {
                 "bound_group": bound_group,
                 "on_message": on_message,
@@ -95,10 +117,14 @@ class WechatAutoListener:
         with self._watchers_lock:
             if wechat_group not in self._watchers:
                 raise RuntimeError(f"未在监听「{wechat_group}」")
-            try:
-                self._wx and self._wx.RemoveListenChat(nickname=wechat_group)
-            except Exception as e:
-                logger.warning("移除监听失败: %s", e)
+            if self._wx:
+                try:
+                    try:
+                        self._wx.RemoveListenChat(who=wechat_group)
+                    except TypeError:
+                        self._wx.RemoveListenChat(nickname=wechat_group)
+                except Exception as e:
+                    logger.warning("移除监听失败: %s", e)
             del self._watchers[wechat_group]
         logger.info("停止监听: 微信群「%s」", wechat_group)
 
