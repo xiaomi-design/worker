@@ -5,19 +5,16 @@ on:
     branches: [ main ]
   workflow_dispatch:    # 允许手动触发
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'   # 提前切到 Node.js 24，消除 Node 20 弃用警告
-
 jobs:
   build-windows:
     runs-on: windows-latest
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 设置 Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -38,7 +35,7 @@ jobs:
         shell: pwsh
 
       - name: 上传打包产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: 下注机器人-windows
           path: dist/下注机器人-windows.zip
