@@ -51,7 +51,7 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
-    console=False,           # False=无控制台窗口；调试时可改 True 看错误
+    console=True,            # 调试期：True=带控制台便于看错误；稳定后改 False
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

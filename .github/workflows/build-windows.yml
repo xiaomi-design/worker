@@ -25,8 +25,15 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
+      - name: 验证关键依赖已装上
+        run: |
+          pip list
+          python -c "import webview; print('webview OK:', webview.__file__)"
+          python -c "import flask; print('flask OK:', flask.__version__)"
+          python -c "import wxauto; print('wxauto OK:', wxauto.__file__)" || echo "wxauto 未装（继续）"
+
       - name: PyInstaller 打包
-        run: pyinstaller build_app_win.spec --clean --noconfirm
+        run: pyinstaller build_app_win.spec --clean --noconfirm --log-level INFO
 
       - name: 压缩成 zip
         run: |
