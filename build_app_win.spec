@@ -4,7 +4,7 @@
 使用方法（在 Windows 上）：
   pip install -r requirements.txt pyinstaller
   pyinstaller build_app_win.spec --clean --noconfirm
-生成结果：dist\\下注机器人\\下注机器人.exe
+生成结果：dist\\微信记账机器人\\微信记账机器人.exe
 """
 
 block_cipher = None
@@ -37,7 +37,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='下注机器人',
+    name='微信记账机器人',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -59,6 +59,6 @@ coll = COLLECT(
     strip=False,
     upx=False,
     upx_exclude=[],
-    name='下注机器人',
+    name='微信记账机器人',
 )
 

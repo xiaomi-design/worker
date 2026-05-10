@@ -30,7 +30,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='下注机器人',
+    name='微信记账机器人',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -51,17 +51,17 @@ coll = COLLECT(
     strip=False,
     upx=False,
     upx_exclude=[],
-    name='下注机器人',
+    name='微信记账机器人',
 )
 
 app = BUNDLE(
     coll,
-    name='下注机器人.app',
+    name='微信记账机器人.app',
     icon=None,
     bundle_identifier='com.huakui.betbot',
     info_plist={
-        'CFBundleName': '下注机器人',
-        'CFBundleDisplayName': '下注机器人',
+        'CFBundleName': '微信记账机器人',
+        'CFBundleDisplayName': '微信记账机器人',
         'CFBundleVersion': '1.0.0',
         'CFBundleShortVersionString': '1.0.0',
         'NSHighResolutionCapable': True,

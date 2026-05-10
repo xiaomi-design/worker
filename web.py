@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""微信下注机器人 —— Web 页面版"""
+"""微信记账机器人 —— Web 页面版"""
 import sys
 import os
 
@@ -357,7 +357,7 @@ def listener_stop():
 
 
 if __name__ == "__main__":
-    print("🎲 微信下注机器人 Web 版已启动！")
+    print("🧾 微信记账机器人 Web 版已启动！")
     print("👉 请用浏览器打开: http://127.0.0.1:5000")
     print()
     app.run(host="0.0.0.0", port=5000, debug=True)

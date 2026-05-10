@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""下注机器人 — 桌面窗口版（pywebview）"""
+"""微信记账机器人 — 桌面窗口版（pywebview）"""
 import sys
 import os
 import io
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     time.sleep(0.8)
     # 创建窗口
     webview.create_window(
-        "🎲 下注机器人",
+        "🧾 微信记账机器人",
         "http://127.0.0.1:5000",
         width=1100,
         height=750,

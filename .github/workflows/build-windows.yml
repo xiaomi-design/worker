@@ -31,13 +31,13 @@ jobs:
       - name: 压缩成 zip
         run: |
           cd dist
-          Compress-Archive -Path "下注机器人" -DestinationPath "下注机器人-windows.zip"
+          Compress-Archive -Path "微信记账机器人" -DestinationPath "微信记账机器人-windows.zip"
         shell: pwsh
 
       - name: 上传打包产物
         uses: actions/upload-artifact@v6
         with:
-          name: 下注机器人-windows
-          path: dist/下注机器人-windows.zip
+          name: 微信记账机器人-windows
+          path: dist/微信记账机器人-windows.zip
           retention-days: 30
 

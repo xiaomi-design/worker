@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""微信下注机器人 —— 主入口（菜单式交互，支持多群，非技术人员可直接使用）"""
+"""微信记账机器人 —— 主入口（菜单式交互，支持多群，非技术人员可直接使用）"""
 import sys
 import os
 
@@ -13,7 +13,7 @@ from wechat import ClipboardWatcher
 def show_menu(current_group: str):
     print()
     print("╔════════════════════════════════════════╗")
-    print("║        🎲  微信下注机器人  🎲          ║")
+    print("║       🧾  微信记账机器人  🧾           ║")
     print(f"║  当前群: {current_group:<28s}  ║")
     print("╠════════════════════════════════════════╣")
     print("║  1. 开始新一局                         ║")
@@ -77,7 +77,7 @@ def main():
     engine = GameEngine()
     current_group = ""
 
-    print("\n🎲 微信下注机器人已启动！")
+    print("\n🧾 微信记账机器人已启动！")
     print("💡 提示: 不同微信群的下注和报表是独立的\n")
 
     # 先选一个群
