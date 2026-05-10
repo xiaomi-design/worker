@@ -26,11 +26,21 @@ jobs:
           pip install pyinstaller
 
       - name: 验证关键依赖已装上
+        shell: bash
+        continue-on-error: true
         run: |
+          echo "=== pip list ==="
           pip list
-          python -c "import webview; print('webview OK:', webview.__file__)"
-          python -c "import flask; print('flask OK:', flask.__version__)"
-          python -c "import wxauto; print('wxauto OK:', wxauto.__file__)" || echo "wxauto 未装（继续）"
+          echo "=== import webview ==="
+          python -c "import webview; print('webview OK:', webview.__file__)" || echo "webview FAIL"
+          echo "=== import flask ==="
+          python -c "import flask; print('flask OK:', flask.__version__)" || echo "flask FAIL"
+          echo "=== import wxauto ==="
+          python -c "import wxauto; print('wxauto OK:', wxauto.__file__)" || echo "wxauto FAIL（仅 Windows 才有）"
+          echo "=== pip show pywebview ==="
+          pip show pywebview || true
+          echo "=== requirements.txt ==="
+          cat requirements.txt
 
       - name: PyInstaller 打包
         run: pyinstaller build_app_win.spec --clean --noconfirm --log-level INFO
