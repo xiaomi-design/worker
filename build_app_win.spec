@@ -42,26 +42,46 @@ _wa_datas, _wa_bins, _wa_hidden = _safe_collect('wxauto')
 _ua_datas, _ua_bins, _ua_hidden = _safe_collect('uiautomation')
 _ct_datas, _ct_bins, _ct_hidden = _safe_collect('comtypes')
 
-# Flask 全家桶（含 jinja2/werkzeug/itsdangerous/click/blinker 等动态依赖）
-_fl_datas, _fl_bins, _fl_hidden = _safe_collect('flask')
-_jj_datas, _jj_bins, _jj_hidden = _safe_collect('jinja2')
-_wz_datas, _wz_bins, _wz_hidden = _safe_collect('werkzeug')
+# Flask 全家桶 — 必须硬性收集，缺了直接炸掉打包
+def _strict_collect(pkg):
+    try:
+        import importlib
+        m = importlib.import_module(pkg)
+        print(f"[spec] {pkg} located at: {m.__file__}")
+    except Exception as e:
+        raise SystemExit(f"[spec] FATAL: {pkg} 未安装在打包 Python 中: {e}")
+    d, b, h = collect_all(pkg)
+    print(f"[spec] {pkg} collected: {len(d)} data, {len(b)} bin, {len(h)} hidden")
+    if not h and pkg in ('flask', 'jinja2', 'werkzeug'):
+        raise SystemExit(f"[spec] FATAL: collect_all({pkg!r}) 返回空，无法继续")
+    return d, b, h
+
+_fl_datas, _fl_bins, _fl_hidden = _strict_collect('flask')
+_jj_datas, _jj_bins, _jj_hidden = _strict_collect('jinja2')
+_wz_datas, _wz_bins, _wz_hidden = _strict_collect('werkzeug')
+# 其它 Flask 间接依赖
+_id_datas, _id_bins, _id_hidden = _safe_collect('itsdangerous')
+_ck_datas, _ck_bins, _ck_hidden = _safe_collect('click')
+_bk_datas, _bk_bins, _bk_hidden = _safe_collect('blinker')
 
 a = Analysis(
     ['app.py'],
     pathex=[],
-    binaries=_wv_bins + _wa_bins + _ua_bins + _ct_bins + _fl_bins + _jj_bins + _wz_bins,
-    datas=[
+    binaries=(_wv_bins + _wa_bins + _ua_bins + _ct_bins
+              + _fl_bins + _jj_bins + _wz_bins + _id_bins + _ck_bins + _bk_bins),
+    datas=([
         ('templates', 'templates'),
         ('static', 'static'),
-    ] + _wv_datas + _wa_datas + _ua_datas + _ct_datas + _fl_datas + _jj_datas + _wz_datas,
-    hiddenimports=[
+    ] + _wv_datas + _wa_datas + _ua_datas + _ct_datas
+       + _fl_datas + _jj_datas + _wz_datas + _id_datas + _ck_datas + _bk_datas),
+    hiddenimports=([
         'engine', 'parser', 'models', 'config', 'wechat', 'wechat_auto', 'report', 'web',
         'clr_loader', 'clr_loader.netfx', 'clr_loader.types',
         'proxy_tools', 'bottle', 'typing_extensions',
         'flask', 'jinja2', 'werkzeug', 'itsdangerous', 'click', 'blinker',
         'openpyxl',
-    ] + _wv_hidden + _wa_hidden + _ua_hidden + _ct_hidden + _fl_hidden + _jj_hidden + _wz_hidden,
+    ] + _wv_hidden + _wa_hidden + _ua_hidden + _ct_hidden
+       + _fl_hidden + _jj_hidden + _wz_hidden + _id_hidden + _ck_hidden + _bk_hidden),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
