@@ -1,5 +1,5 @@
 flask>=3.0.0
 openpyxl>=3.1.0
 pywebview>=6.0
-# wxauto 在 workflow 中单独从 GitHub/镜像安装（PyPI 主源已下架）
+# wxauto4（适配微信 4.x）在 workflow 中单独安装；3.x 的 wxauto 在微信 4.x 上会报 1400 句柄失效
 

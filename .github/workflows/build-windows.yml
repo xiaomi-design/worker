@@ -33,14 +33,16 @@ jobs:
           pip install --upgrade --force-reinstall pywebview
           # 显式补装 pywebview 在 import 阶段需要的依赖（部分版本会漏装）
           pip install proxy_tools typing_extensions bottle
-          # 装 wxauto 的 runtime 依赖（uiautomation/comtypes 在 PyPI 上仍在）
+          # 装 wxauto4 的 runtime 依赖（uiautomation/comtypes 在 PyPI 上仍在）
           pip install uiautomation comtypes pywin32
-          # wxauto 多重 fallback：① GitHub 主分支 ② 清华镜像 ③ 阿里镜像
-          pip install "git+https://github.com/cluic/wxauto.git@main" \
-            || pip install wxauto -i https://pypi.tuna.tsinghua.edu.cn/simple \
-            || pip install wxauto -i https://mirrors.aliyun.com/pypi/simple/ \
-            || { echo "::error::wxauto 三种来源全部失败"; exit 1; }
-          PYTHONIOENCODING=utf-8 python -c "import wxauto; print('wxauto version:', getattr(wxauto, 'VERSION', getattr(wxauto, '__version__', 'unknown')))"
+          # wxauto4（适配微信 4.x；3.x 版 wxauto 在微信 4.x 上必报 1400 句柄失效）
+          # 多重 fallback：① PyPI 官方 ② 清华镜像 ③ 阿里镜像 ④ GitHub 源码
+          pip install wxauto4 \
+            || pip install wxauto4 -i https://pypi.tuna.tsinghua.edu.cn/simple \
+            || pip install wxauto4 -i https://mirrors.aliyun.com/pypi/simple/ \
+            || pip install "git+https://github.com/cluic/wxauto4.git@main" \
+            || { echo "::error::wxauto4 四种来源全部失败"; exit 1; }
+          PYTHONIOENCODING=utf-8 python -c "import wxauto4; print('wxauto4 version:', getattr(wxauto4, 'VERSION', getattr(wxauto4, '__version__', 'unknown')))"
 
       - name: 验证关键依赖已装上
         shell: bash
@@ -54,8 +56,8 @@ jobs:
             python -c "import webview; print('webview OK:', webview.__file__)" 2>&1 || echo "webview FAIL"
             echo "=== import flask ==="
             python -c "import flask; print('flask OK:', flask.__version__)" 2>&1 || echo "flask FAIL"
-            echo "=== import wxauto ==="
-            python -c "import wxauto; print('wxauto OK:', wxauto.__file__)" 2>&1 || echo "wxauto FAIL"
+            echo "=== import wxauto4 ==="
+            python -c "import wxauto4; print('wxauto4 OK:', wxauto4.__file__)" 2>&1 || echo "wxauto4 FAIL"
             echo "=== pip show pywebview ==="
             pip show pywebview 2>&1 || true
             echo "=== which python ==="

@@ -29,7 +29,7 @@ if not _wv_hidden:
     raise SystemExit("[spec] FATAL: collect_all('webview') 返回空，pywebview 安装可能损坏")
 
 # 必须硬性收集（缺了直接炸掉打包，避免出 zip 后用户才发现 ModuleNotFound）
-_STRICT_PKGS = {'flask', 'jinja2', 'werkzeug', 'wxauto', 'uiautomation', 'comtypes'}
+_STRICT_PKGS = {'flask', 'jinja2', 'werkzeug', 'wxauto4', 'uiautomation', 'comtypes'}
 
 def _safe_collect(pkg):
     try:
@@ -53,7 +53,7 @@ def _strict_collect(pkg):
         raise SystemExit(f"[spec] FATAL: collect_all({pkg!r}) 返回空，无法继续")
     return d, b, h
 
-_wa_datas, _wa_bins, _wa_hidden = _strict_collect('wxauto')
+_wa_datas, _wa_bins, _wa_hidden = _strict_collect('wxauto4')
 _ua_datas, _ua_bins, _ua_hidden = _strict_collect('uiautomation')
 _ct_datas, _ct_bins, _ct_hidden = _strict_collect('comtypes')
 _fl_datas, _fl_bins, _fl_hidden = _strict_collect('flask')
