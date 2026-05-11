@@ -154,35 +154,9 @@ td.left{text-align:left;}
 <!-- 截图预览 -->
 <div class="modal-overlay" id="shotModal"><div class="modal" style="width:auto;max-width:90vw;max-height:90vh;overflow:auto;"><h3>截图预览</h3><div style="margin-bottom:10px;text-align:center;"><img id="shotImg" style="max-width:100%;border:1px solid #ddd;"></div><div class="btns"><button onclick="hideModal('shotModal')">关闭</button><button class="ok" onclick="downloadShot()">💾 保存到本地</button></div></div></div>
 <!-- 自动监听微信群 -->
-<div class="modal-overlay" id="listenerModal"><div class="modal" style="width:300px;max-height:90vh;display:flex;flex-direction:column;">
-<h3 style="flex:none;">自动监听微信群</h3>
-<details style="flex:none;font-size:12px;color:#555;margin-bottom:8px;border:1px solid #e5e5e5;border-radius:4px;padding:6px 8px;background:#fafafa;">
-  <summary style="cursor:pointer;color:#1565d8;user-select:none;">📖 使用说明 / 常见报错（点击展开）</summary>
-  <div style="margin-top:6px;line-height:1.7;max-height:50vh;overflow-y:auto;padding-right:4px;">
-    群里发言会自动同步到本程序：建群、加成员、解析下注；普通聊天会被忽略。
-    <div style="margin-top:6px;color:#1565d8;"><b>✅ 启动前确认</b></div>
-    <ol style="margin:2px 0 0 18px;padding:0;">
-      <li>仅 <b>Windows</b> + 已登录 <b>PC 微信</b>。</li>
-      <li>微信主窗口正常打开，<b>不要最小化到托盘</b>。</li>
-      <li>先在微信里<b>点开一次该群</b>。</li>
-      <li>群名与微信<b>完全一致</b>（含空格/emoji）。</li>
-    </ol>
-    <div style="margin-top:6px;color:#a04500;"><b>⚠️ 注意</b></div>
-    <ol style="margin:2px 0 0 18px;padding:0;">
-      <li>监听期间不要关/重启微信。</li>
-      <li>只读消息，不会替你发言。</li>
-      <li>建议用<b>小号</b>，防风控。</li>
-    </ol>
-    <div style="margin-top:6px;color:#a8071a;"><b>❗ 报错</b></div>
-    <ul style="margin:2px 0 0 18px;padding:0;list-style:disc;">
-      <li><b>1400 句柄无效</b>：按"启动前确认"2、3 条修好，再点一次即可自动重连。</li>
-      <li><b>找不到群</b>：群名不一致或不在会话列表，去微信点开一次再试。</li>
-    </ul>
-  </div>
-</details>
-<div style="flex:none;font-size:12px;color:#c00;margin-bottom:6px;">⚠️ 仅 Windows + PC 微信，建议用小号。</div>
-<input id="listenerWxGroupName" placeholder="微信群名（必须精确，复制粘贴最稳）" style="flex:none;">
-<div class="btns" style="flex:none;"><button onclick="hideModal('listenerModal')">取消</button><button class="ok" onclick="submitListener()">开始监听</button></div></div></div>
+<div class="modal-overlay" id="listenerModal"><div class="modal"><h3>自动监听微信群</h3>
+<input id="listenerWxGroupName" placeholder="微信群名">
+<div class="btns"><button onclick="hideModal('listenerModal')">取消</button><button class="ok" onclick="submitListener()">开始监听</button></div></div></div>
 
 <script src="/static/html2canvas.min.js"></script>
 <script>
